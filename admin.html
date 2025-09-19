@@ -515,9 +515,8 @@
         roster = loadedRoster;
       });
       
-      // 새로운 계층 구조에서 데이터 읽기
-      const [year, month, day] = dateKey.split('-');
-      onSnapshot(collection(db, 'checkins', year, month, day), (snapshot) => {
+      // 새로운 계층 구조에서 데이터 읽기: checkins/날짜/좌석번호
+      onSnapshot(collection(db, 'checkins', dateKey), (snapshot) => {
         const checkins = {};
         snapshot.forEach((doc) => {
           const seat = doc.id;
@@ -580,10 +579,9 @@
         const cell=e.target.closest('.seat'); 
         if(!cell) return; 
         const seat=cell.dataset.seat; 
-        const [year, month, day] = dateKey.split('-');
         
         try {
-          const docSnap = await getDoc(doc(db, 'checkins', year, month, day, String(seat)));
+          const docSnap = await getDoc(doc(db, 'checkins', dateKey, String(seat)));
           if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
           const v = docSnap.data(); 
@@ -591,7 +589,7 @@
           const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
           
           if(ok){ 
-            await deleteDoc(doc(db, 'checkins', year, month, day, String(seat))); 
+            await deleteDoc(doc(db, 'checkins', dateKey, String(seat))); 
           }
         } catch (error) {
           console.error('좌석 삭제 실패:', error);

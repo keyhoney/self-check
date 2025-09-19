@@ -401,8 +401,7 @@
         res.innerHTML='<p class="muted">불러오는 중…</p>'; 
         
         try {
-          const [year, month, day] = dateKey.split('-');
-          const snapshot = await getDocs(collection(db, 'checkins', year, month, day));
+          const snapshot = await getDocs(collection(db, 'checkins', dateKey));
           const bySeat = {};
           snapshot.forEach((doc) => {
             const seat = doc.id;

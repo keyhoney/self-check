@@ -609,11 +609,10 @@
         
         try {
           const dateKey = todayKey();
-          const [year, month, day] = dateKey.split('-');
           const payload = { class: klass, number, name: name||null, ts: Date.now() };
           
-          // 새로운 계층 구조: checkins/년도/월/일/좌석번호
-          await setDoc(doc(db, 'checkins', year, month, day, String(seat)), payload);
+          // 새로운 계층 구조: checkins/날짜/좌석번호 (짝수 세그먼트)
+          await setDoc(doc(db, 'checkins', dateKey, String(seat)), payload);
           msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
           msg.className = 'success';
         } catch (error) {
