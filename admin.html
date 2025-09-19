@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>자율학습 QR 출석체크 (학생용)</title>
+  <title>자율학습 좌석 현황 (관리자)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -310,32 +310,6 @@
       backdrop-filter: blur(10px);
     }
 
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      border-radius: 12px;
-      overflow: hidden;
-      border: 1px solid var(--border-color);
-    }
-
-    th, td {
-      border: 1px solid var(--border-color);
-      padding: 12px;
-      text-align: center;
-    }
-
-    th {
-      background: rgba(255, 255, 255, 0.05);
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    td {
-      color: var(--text-secondary);
-    }
-
     /* Loading Animation */
     @keyframes fadeInUp {
       from {
@@ -385,8 +359,7 @@
       }
     }
   </style>
-  <!-- 외부 라이브러리: Firebase, SheetJS(xlsx) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- 외부 라이브러리: Firebase -->
   <script type="module">
     // ======= 1) Firebase 설정 =======
     // ⚠️ 아래 설정을 본인의 프로젝트로 바꾸세요 (Firebase 콘솔 > 프로젝트 설정 > SDK 설정 및 구성)
@@ -406,13 +379,12 @@
       storageBucket: "self-check-3d44e.firebasestorage.app",
       messagingSenderId: "1013380899103",
       appId: "1:1013380899103:web:3f3125f116446835c3d02a"
-};
+    };
 
     const $ = (sel,root=document)=>root.querySelector(sel);
     const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
     const params = new URLSearchParams(location.search);
-    const mode = 'student'; // 학생용 페이지
-    const seatId = Number(params.get('seat')||'0');
+    const dateParam = params.get('date');
 
     const todayKey = () => {
       const d = new Date();
@@ -459,143 +431,158 @@
 
     // ===== 렌더 =====
     const header = document.createElement('header');
-    header.innerHTML = `<h1>자율학습 QR 출석체크</h1>`;
+    header.innerHTML = `<h1>자율학습 좌석 현황 (관리자)</h1>`;
     document.body.appendChild(header);
     const main = document.createElement('main');
     document.body.appendChild(main);
 
-    renderStudent();
+    // 비밀번호 확인
+    const pass = prompt('관리자 비밀번호를 입력하세요');
+    if(pass !== 'honey'){
+      const c = document.createElement('div');
+      c.className='card'; 
+      c.innerHTML = '<p class="error">비밀번호가 올바르지 않습니다.</p>';
+      main.appendChild(c); 
+    } else {
+      renderAdmin();
+    }
 
-
-    // ===== 학생용 =====
-    async function renderStudent(){
-      const card = document.createElement('div'); card.className='card';
-      const seatInfo = seatId ? `<strong>${seatId}번 좌석</strong>` : '<strong class="error">좌석 정보가 없습니다 (QR 링크에 ?seat=숫자 필요)</strong>';
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div>${seatInfo}</div>
-          <div style="display:flex;gap:8px">
-            <button class="ghost" id="toAdmin">관리자</button>
+    // ===== 관리자(좌석판) =====
+    async function renderAdmin(){
+      const container = document.createElement('div'); 
+      container.className='card';
+      const dateKey = dateParam || todayKey();
+      container.innerHTML = `
+        <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <strong>${dateKey}</strong> 좌석 현황
+            <div class="legend" style="margin-top:6px">
+              <span class="pill"><span style="width:10px;height:10px;border-radius:50%;background:var(--good);display:inline-block"></span> 체크됨</span>
+              <span class="pill"><span style="width:10px;height:10px;border-radius:50%;background:var(--line);display:inline-block"></span> 비어있음</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="dateInput" type="date" />
+            <button class="ghost" id="reload">새로고침</button>
+            <button class="ghost" id="toStudent">학생용</button>
             <button class="ghost" id="toTeacher">담임조회</button>
           </div>
         </div>
-        <div class="row">
-          <div style="flex:1 1 180px">
-            <label>반 (1~10)</label>
-            <select id="klass"></select>
-          </div>
-          <div style="flex:1 1 180px">
-            <label>번호 (1~25)</label>
-            <select id="number"></select>
-          </div>
-          <div style="flex:2 1 260px">
-            <label>이름 (자동 매칭)</label>
-            <input id="name" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
-          </div>
+        <div class="grid-container">
+          <div id="grid" class="grid"></div>
+          <div class="block-gap"></div>
+          <div id="grid2" class="grid"></div>
         </div>
-        <div class="row" style="margin-top:12px">
-          <button class="primary" id="submitBtn">출석 체크</button>
-        </div>
-        <p id="msg" class="muted" style="margin-top:10px"></p>
+        <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세를 볼 수 있습니다. 좌석이 많을 때는 가로 스크롤을 사용하세요.</p>
       `;
-      main.appendChild(card);
+      main.appendChild(container);
 
-      const klassSel = $('#klass', card); const numSel = $('#number', card);
-      for(let i=1;i<=10;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}반`; klassSel.appendChild(opt); }
-      for(let i=1;i<=25;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}번`; numSel.appendChild(opt); }
+      const dateInput = $('#dateInput', container); 
+      dateInput.value = dateKey;
+      const grid = $('#grid', container); 
+      const grid2 = $('#grid2', container);
+      
+      for(let i=1;i<=50;i++) grid.appendChild(makeSeat(i));
+      for(let i=51;i<=100;i++) grid2.appendChild(makeSeat(i));
+      
+      function makeSeat(i){ 
+        const d=document.createElement('div'); 
+        d.className='seat free'; 
+        d.dataset.seat=String(i); 
+        d.innerHTML=`
+          <div class="seatHeader">#${i}</div>
+          <div class="name muted">-</div>
+          <div class="class-info muted">-</div>
+        `; 
+        return d; 
+      }
 
-      // 명단 자동 매칭 (JSON 파일에서 로드)
-      let globalRoster = {};
-      loadRosterFromJSON().then(roster => {
-        globalRoster = roster;
-        
-        const tryFill = () => {
-          const k = Number(klassSel.value);
-          const n = Number(numSel.value);
-          const nameInput = $('#name', card);
-          
-          // 사용자가 수동으로 입력한 경우를 확인
-          const isManualInput = nameInput.dataset.manual === 'true';
-          
-          if (k && n && globalRoster[k] && globalRoster[k][n]) {
-            // 명단에 있는 경우 자동으로 채우기 (수동 입력이 아닌 경우에만)
-            if (!isManualInput) {
-              nameInput.value = globalRoster[k][n];
-              nameInput.style.color = 'var(--text-primary)';
-              nameInput.placeholder = '명단에서 자동 매칭됨 (수정 가능)';
-              nameInput.title = '자동으로 불러온 이름입니다. 필요시 수정할 수 있습니다.';
-            } else {
-              nameInput.style.color = 'var(--text-primary)';
-              nameInput.placeholder = '수동으로 입력된 이름';
-              nameInput.title = '수동으로 입력된 이름입니다.';
-            }
-          } else if (k && n) {
-            // 반과 번호는 선택했지만 명단에 없는 경우
-            if (!isManualInput) {
-              nameInput.value = '';
-            }
-            nameInput.style.color = 'var(--text-secondary)';
-            nameInput.placeholder = '명단에 없는 번호입니다. 이름을 직접 입력하세요';
-            nameInput.title = '선택한 반과 번호가 명단에 없습니다. 이름을 직접 입력해주세요.';
-          } else {
-            // 반이나 번호가 선택되지 않은 경우
-            if (!isManualInput) {
-              nameInput.value = '';
-            }
-            nameInput.style.color = 'var(--text-secondary)';
-            nameInput.placeholder = '반과 번호를 선택하면 자동으로 불러옵니다';
-            nameInput.title = '반과 번호를 선택하면 명단에서 자동으로 이름을 불러옵니다.';
+      let roster = {};
+      loadRosterFromJSON().then(loadedRoster => {
+        roster = loadedRoster;
+      });
+      
+      onSnapshot(collection(db, 'checkins'), (snapshot) => {
+        const checkins = {};
+        snapshot.forEach((doc) => {
+          const [date, seat] = doc.id.split('_');
+          if (date === dateKey) {
+            checkins[seat] = doc.data();
           }
-        }
-        
-        // 이름 입력 필드에 수동 입력 감지 이벤트 추가
-        const nameInput = $('#name', card);
-        nameInput.addEventListener('input', () => {
-          nameInput.dataset.manual = 'true';
-          nameInput.style.color = 'var(--text-primary)';
-          nameInput.placeholder = '수동으로 입력된 이름';
-          nameInput.title = '수동으로 입력된 이름입니다.';
         });
-        
-        // 반이나 번호가 변경되면 수동 입력 플래그 리셋
-        const resetManualFlag = () => {
-          nameInput.dataset.manual = 'false';
-        };
-        klassSel.addEventListener('change', resetManualFlag);
-        numSel.addEventListener('change', resetManualFlag);
-        
-        // 이벤트 리스너 등록
-        klassSel.addEventListener('change', tryFill);
-        numSel.addEventListener('change', tryFill);
-        
-        // 초기 실행
-        tryFill();
+        draw(checkins);
       });
 
-      $('#toAdmin',card).addEventListener('click',()=>{ location.href='admin.html'; });
-      $('#toTeacher',card).addEventListener('click',()=>{ location.href='homeroom.html'; });
+      function draw(checkins){
+        [...$$('.seat',grid), ...$$('.seat',grid2)].forEach(cell=>{
+          const seat=cell.dataset.seat; 
+          const item=checkins[seat];
+          
+          if(item){ 
+            const nm=item.name || roster?.[item.class]?.[item.number] || ''; 
+            cell.classList.remove('free'); 
+            
+            // 좌석 번호는 그대로 유지
+            cell.querySelector('.seatHeader').textContent=`#${seat}`;
+            
+            // 이름 표시
+            cell.querySelector('.name').textContent=nm||'(이름없음)'; 
+            cell.querySelector('.name').classList.remove('muted');
+            
+            // 반, 번호 정보 표시
+            cell.querySelector('.class-info').textContent=`${item.class}반 ${item.number}번`; 
+            cell.querySelector('.class-info').classList.remove('muted');
+          }
+          else{ 
+            cell.classList.add('free'); 
+            
+            // 좌석 번호는 그대로 유지
+            cell.querySelector('.seatHeader').textContent=`#${seat}`;
+            
+            // 비어있을 때는 이름과 반 정보를 숨김
+            cell.querySelector('.name').textContent=''; 
+            cell.querySelector('.name').classList.add('muted');
+            
+            cell.querySelector('.class-info').textContent=''; 
+            cell.querySelector('.class-info').classList.add('muted');
+          }
+        });
+      }
 
-      $('#submitBtn',card).addEventListener('click', async ()=>{
-        const klass = Number(klassSel.value), number = Number(numSel.value); const name = $('#name', card).value.trim(); const seat = seatId; const msg=$('#msg',card);
-        if(!seat){ msg.textContent = '좌석 정보가 없습니다.'; msg.className='error'; return; }
-        if(!klass || !number){ msg.textContent='반/번호를 선택하세요.'; msg.className='error'; return; }
+      grid.addEventListener('click', seatClick); 
+      grid2.addEventListener('click', seatClick);
+      
+      async function seatClick(e){ 
+        const cell=e.target.closest('.seat'); 
+        if(!cell) return; 
+        const seat=cell.dataset.seat; 
+        const docId = `${dateKey}_${seat}`;
         
         try {
-          const dateKey = todayKey();
-          const docId = `${dateKey}_${seat}`;
-          const payload = { class: klass, number, name: name||null, ts: Date.now() };
+          const docSnap = await getDoc(doc(db, 'checkins', docId));
+          if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
-          await setDoc(doc(db, 'checkins', docId), payload);
-          msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
-          msg.className = 'success';
+          const v = docSnap.data(); 
+          const nm = v.name || roster?.[v.class]?.[v.number] || ''; 
+          const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
+          
+          if(ok){ 
+            await deleteDoc(doc(db, 'checkins', docId)); 
+          }
         } catch (error) {
-          console.error('출석 체크 실패:', error);
-          msg.textContent = `오류 발생: ${error.message}`;
-          msg.className = 'error';
+          console.error('좌석 삭제 실패:', error);
+          alert('좌석 삭제 중 오류가 발생했습니다.');
         }
-      });
-    }
+      }
 
+      $('#reload',container).addEventListener('click', ()=>{ 
+        const base=location.href.split('?')[0]; 
+        location.href=`${base}?date=${dateInput.value}`; 
+      });
+      
+      $('#toStudent',container).addEventListener('click', ()=>{ location.href='index.html'; });
+      $('#toTeacher',container).addEventListener('click', ()=>{ location.href='homeroom.html'; });
+    }
   </script>
 </head>
 <body></body>
