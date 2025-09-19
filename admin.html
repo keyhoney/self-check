@@ -515,12 +515,14 @@
         roster = loadedRoster;
       });
       
-      // 새로운 계층 구조에서 데이터 읽기: checkins/날짜/좌석번호
-      onSnapshot(collection(db, 'checkins', dateKey), (snapshot) => {
+      // Firestore 구조: checkins/날짜_좌석번호
+      onSnapshot(collection(db, 'checkins'), (snapshot) => {
         const checkins = {};
         snapshot.forEach((doc) => {
-          const seat = doc.id;
-          checkins[seat] = doc.data();
+          const [date, seat] = doc.id.split('_');
+          if (date === dateKey) {
+            checkins[seat] = doc.data();
+          }
         });
         draw(checkins);
       });
@@ -579,9 +581,10 @@
         const cell=e.target.closest('.seat'); 
         if(!cell) return; 
         const seat=cell.dataset.seat; 
+        const docId = `${dateKey}_${seat}`;
         
         try {
-          const docSnap = await getDoc(doc(db, 'checkins', dateKey, String(seat)));
+          const docSnap = await getDoc(doc(db, 'checkins', docId));
           if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
           const v = docSnap.data(); 
@@ -589,7 +592,7 @@
           const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
           
           if(ok){ 
-            await deleteDoc(doc(db, 'checkins', dateKey, String(seat))); 
+            await deleteDoc(doc(db, 'checkins', docId)); 
           }
         } catch (error) {
           console.error('좌석 삭제 실패:', error);

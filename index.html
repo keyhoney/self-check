@@ -611,8 +611,9 @@
           const dateKey = todayKey();
           const payload = { class: klass, number, name: name||null, ts: Date.now() };
           
-          // 새로운 계층 구조: checkins/날짜/좌석번호 (짝수 세그먼트)
-          await setDoc(doc(db, 'checkins', dateKey, String(seat)), payload);
+          // Firestore 구조: checkins/날짜_좌석번호 (문서 ID로 사용)
+          const docId = `${dateKey}_${seat}`;
+          await setDoc(doc(db, 'checkins', docId), payload);
           msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
           msg.className = 'success';
         } catch (error) {

@@ -401,11 +401,13 @@
         res.innerHTML='<p class="muted">불러오는 중…</p>'; 
         
         try {
-          const snapshot = await getDocs(collection(db, 'checkins', dateKey));
+          const snapshot = await getDocs(collection(db, 'checkins'));
           const bySeat = {};
           snapshot.forEach((doc) => {
-            const seat = doc.id;
-            bySeat[seat] = doc.data();
+            const [date, seat] = doc.id.split('_');
+            if (date === dateKey) {
+              bySeat[seat] = doc.data();
+            }
           });
           
           const present = new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); 
