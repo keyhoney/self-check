@@ -38,6 +38,10 @@ async function renderAdmin() {
       <div id="grid" class="grid"></div>
       <div class="block-gap"></div>
       <div id="grid2" class="grid"></div>
+      <div class="block-gap-large"></div>
+      <div id="grid3" class="grid"></div>
+      <div class="block-gap"></div>
+      <div id="grid4" class="grid"></div>
     </div>
     <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세 정보를 볼 수 있습니다. 가로 스크롤을 사용하세요.</p>
   `;
@@ -45,6 +49,8 @@ async function renderAdmin() {
 
   const grid = $('#grid', container);
   const grid2 = $('#grid2', container);
+  const grid3 = $('#grid3', container);
+  const grid4 = $('#grid4', container);
   const dateInput = $('#dateInput', container);
 
   dateInput.value = dateKey;
@@ -62,12 +68,19 @@ async function renderAdmin() {
     return d;
   }
 
-  // 1-50번 좌석을 첫 번째 그리드에, 51-100번 좌석을 두 번째 그리드에 배치
-  for (let i = 1; i <= 50; i++) {
+  // 1-25번 좌석을 첫 번째 그리드에, 26-50번 좌석을 두 번째 그리드에 배치
+  // 51-75번 좌석을 세 번째 그리드에, 76-100번 좌석을 네 번째 그리드에 배치
+  for (let i = 1; i <= 25; i++) {
     grid.appendChild(makeSeat(i));
   }
-  for (let i = 51; i <= 100; i++) {
+  for (let i = 26; i <= 50; i++) {
     grid2.appendChild(makeSeat(i));
+  }
+  for (let i = 51; i <= 75; i++) {
+    grid3.appendChild(makeSeat(i));
+  }
+  for (let i = 76; i <= 100; i++) {
+    grid4.appendChild(makeSeat(i));
   }
 
   let roster = {};
@@ -94,7 +107,7 @@ async function renderAdmin() {
   function draw(checkins) {
     let attendanceCount = 0; // 출석한 학생 수 카운터
     
-    [...$$('.seat', grid), ...$$('.seat', grid2)].forEach(cell => {
+    [...$$('.seat', grid), ...$$('.seat', grid2), ...$$('.seat', grid3), ...$$('.seat', grid4)].forEach(cell => {
       const seat = cell.dataset.seat;
       const item = checkins[seat];
       
@@ -139,6 +152,8 @@ async function renderAdmin() {
 
   grid.addEventListener('click', seatClick);
   grid2.addEventListener('click', seatClick);
+  grid3.addEventListener('click', seatClick);
+  grid4.addEventListener('click', seatClick);
   
   async function seatClick(e) {
     const cell = e.target.closest('.seat');

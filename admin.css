@@ -2,24 +2,46 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(50, 1fr);
+  grid-template-columns: repeat(25, 1fr);
   grid-template-rows: repeat(1, 1fr);
   gap: 8px;
-  min-width: 4000px;
+  min-width: 2000px;
   height: 100px;
 }
 
 .grid2 {
   display: grid;
-  grid-template-columns: repeat(50, 1fr);
+  grid-template-columns: repeat(25, 1fr);
   grid-template-rows: repeat(1, 1fr);
   gap: 8px;
-  min-width: 4000px;
+  min-width: 2000px;
+  height: 100px;
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: repeat(25, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  gap: 8px;
+  min-width: 2000px;
+  height: 100px;
+}
+
+.grid4 {
+  display: grid;
+  grid-template-columns: repeat(25, 1fr);
+  grid-template-rows: repeat(1, 1fr);
+  gap: 8px;
+  min-width: 2000px;
   height: 100px;
 }
 
 .block-gap {
   height: 20px;
+}
+
+.block-gap-large {
+  height: 40px;
 }
 
 /* 좌석 그리드 컨테이너 */
