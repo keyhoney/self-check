@@ -430,21 +430,28 @@
         const jsonData = await response.json();
         
         const roster = {};
+        const maxNumbers = {}; // 각 반의 최대 번호 저장
+        
         jsonData.forEach(student => {
           const klass = student.반;
           const number = student.번호;
           const name = student.이름;
           
-          if (klass >= 1 && klass <= 10 && number >= 1 && number <= 25) {
+          if (klass >= 1 && klass <= 10 && number >= 1) {
             if (!roster[klass]) roster[klass] = {};
             roster[klass][number] = name;
+            
+            // 각 반의 최대 번호 업데이트
+            if (!maxNumbers[klass] || number > maxNumbers[klass]) {
+              maxNumbers[klass] = number;
+            }
           }
         });
         
-        return roster;
+        return { roster, maxNumbers };
       } catch (error) {
         console.error('JSON 파일 로드 실패:', error);
-        return {};
+        return { roster: {}, maxNumbers: {} };
       }
     }
 
@@ -502,12 +509,31 @@
 
       const klassSel = $('#klass', card); const numSel = $('#number', card);
       for(let i=1;i<=10;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}반`; klassSel.appendChild(opt); }
-      for(let i=1;i<=25;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}번`; numSel.appendChild(opt); }
 
       // 명단 자동 매칭 (JSON 파일에서 로드)
       let globalRoster = {};
-      loadRosterFromJSON().then(roster => {
-        globalRoster = roster;
+      let globalMaxNumbers = {};
+      
+      // 번호 선택지 업데이트 함수
+      const updateNumberOptions = (selectedClass) => {
+        // 기존 번호 옵션 제거
+        numSel.innerHTML = '';
+        
+        const maxNum = globalMaxNumbers[selectedClass] || 25;
+        for(let i=1;i<=maxNum;i++){ 
+          const opt=document.createElement('option'); 
+          opt.value=String(i); 
+          opt.textContent=`${i}번`; 
+          numSel.appendChild(opt); 
+        }
+      };
+      
+      loadRosterFromJSON().then(data => {
+        globalRoster = data.roster;
+        globalMaxNumbers = data.maxNumbers;
+        
+        // 초기 번호 옵션 설정 (1반 기준)
+        updateNumberOptions(1);
         
         const tryFill = () => {
           const k = Number(klassSel.value);
@@ -557,16 +583,23 @@
           nameInput.title = '수동으로 입력된 이름입니다.';
         });
         
-        // 반이나 번호가 변경되면 수동 입력 플래그 리셋
-        const resetManualFlag = () => {
-          nameInput.dataset.manual = 'false';
-        };
-        klassSel.addEventListener('change', resetManualFlag);
-        numSel.addEventListener('change', resetManualFlag);
-        
-        // 이벤트 리스너 등록
-        klassSel.addEventListener('change', tryFill);
-        numSel.addEventListener('change', tryFill);
+          // 반이나 번호가 변경되면 수동 입력 플래그 리셋
+          const resetManualFlag = () => {
+            nameInput.dataset.manual = 'false';
+          };
+          
+          // 반 선택 변경 시 번호 옵션 업데이트
+          klassSel.addEventListener('change', (e) => {
+            const selectedClass = Number(e.target.value);
+            updateNumberOptions(selectedClass);
+            resetManualFlag();
+            tryFill();
+          });
+          
+          numSel.addEventListener('change', resetManualFlag);
+          
+          // 이벤트 리스너 등록
+          numSel.addEventListener('change', tryFill);
         
         // 초기 실행
         tryFill();

@@ -288,9 +288,7 @@
 
     const $ = (sel,root=document)=>root.querySelector(sel);
     const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
-    const params = new URLSearchParams(location.search);
-    const dateParam = params.get('date') || todayKey();
-
+    
     const todayKey = () => {
       const d = new Date();
       const y = d.getFullYear();
@@ -298,6 +296,9 @@
       const dd = String(d.getDate()).padStart(2,'0');
       return `${y}-${m}-${dd}`;
     }
+    
+    const params = new URLSearchParams(location.search);
+    const dateParam = params.get('date') || todayKey();
 
     // JSON 파일에서 명단 로드
     async function loadRosterFromJSON() {
@@ -306,21 +307,28 @@
         const jsonData = await response.json();
         
         const roster = {};
+        const maxNumbers = {}; // 각 반의 최대 번호 저장
+        
         jsonData.forEach(student => {
           const klass = student.반;
           const number = student.번호;
           const name = student.이름;
           
-          if (klass >= 1 && klass <= 10 && number >= 1 && number <= 25) {
+          if (klass >= 1 && klass <= 10 && number >= 1) {
             if (!roster[klass]) roster[klass] = {};
             roster[klass][number] = name;
+            
+            // 각 반의 최대 번호 업데이트
+            if (!maxNumbers[klass] || number > maxNumbers[klass]) {
+              maxNumbers[klass] = number;
+            }
           }
         });
         
-        return roster;
+        return { roster, maxNumbers };
       } catch (error) {
         console.error('JSON 파일 로드 실패:', error);
-        return {};
+        return { roster: {}, maxNumbers: {} };
       }
     }
 
@@ -380,9 +388,13 @@
       $('#load',container).addEventListener('click',()=>load());
       load();
 
-      let roster={}; 
-      loadRosterFromJSON().then(loadedRoster => {
-        roster = loadedRoster;
+      let roster = {}; 
+      let maxNumbers = {};
+      
+      loadRosterFromJSON().then(data => {
+        roster = data.roster;
+        maxNumbers = data.maxNumbers;
+        load(); // 명단 로드 후 초기 데이터 표시
       });
 
       async function load(){ 
@@ -403,10 +415,13 @@
           
           const present = new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); 
           const names = roster?.[k]||{}; 
+          const maxNum = maxNumbers?.[k] || 0; // 해당 반의 최대 번호
           
-          let html=`<h3 style="margin:8px 0">${dateKey} · ${k}반 출결</h3>`; 
+          let html=`<h3 style="margin:8px 0">${dateKey} · ${k}반 출결 (총 ${maxNum}명)</h3>`; 
           html+='<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>'; 
-          for(let n=1;n<=25;n++){ 
+          
+          // 해당 반의 최대 번호까지만 반복
+          for(let n=1;n<=maxNum;n++){ 
             const nm=names?.[n]||''; 
             const ok=present.has(n); 
             html+=`<tr><td>${n}</td><td>${nm||'-'}</td><td style="color:${ok?'#16a34a':'#ef4444'}">${ok?'참석':'미참석'}</td></tr>`; 
