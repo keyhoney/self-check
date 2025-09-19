@@ -515,16 +515,20 @@
         roster = loadedRoster;
       });
       
-      // Firestore 구조: checkins/날짜_좌석번호
-      onSnapshot(collection(db, 'checkins'), (snapshot) => {
+      // 계층 구조에서 데이터 읽기: checkins/년도/월/일/좌석번호/student
+      const [year, month, day] = dateKey.split('-');
+      onSnapshot(collection(db, 'checkins', year, month, day), (snapshot) => {
         const checkins = {};
         snapshot.forEach((doc) => {
-          const [date, seat] = doc.id.split('_');
-          if (date === dateKey) {
-            checkins[seat] = doc.data();
-          }
+          const seat = doc.id;
+          // 각 좌석의 student 문서에서 데이터 읽기
+          getDoc(doc(db, 'checkins', year, month, day, seat, 'student')).then(studentDoc => {
+            if (studentDoc.exists()) {
+              checkins[seat] = studentDoc.data();
+              draw(checkins);
+            }
+          });
         });
-        draw(checkins);
       });
 
       function draw(checkins){
@@ -581,10 +585,10 @@
         const cell=e.target.closest('.seat'); 
         if(!cell) return; 
         const seat=cell.dataset.seat; 
-        const docId = `${dateKey}_${seat}`;
+        const [year, month, day] = dateKey.split('-');
         
         try {
-          const docSnap = await getDoc(doc(db, 'checkins', docId));
+          const docSnap = await getDoc(doc(db, 'checkins', year, month, day, String(seat), 'student'));
           if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
           const v = docSnap.data(); 
@@ -592,7 +596,7 @@
           const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
           
           if(ok){ 
-            await deleteDoc(doc(db, 'checkins', docId)); 
+            await deleteDoc(doc(db, 'checkins', year, month, day, String(seat), 'student')); 
           }
         } catch (error) {
           console.error('좌석 삭제 실패:', error);
