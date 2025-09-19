@@ -193,11 +193,40 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(25, 1fr);
-      gap: 8px;
+      gap: 6px;
+      min-width: 1650px; /* 25개 좌석 × 60px + 24개 간격 × 6px */
+      padding-bottom: 8px;
     }
 
     .block-gap {
       height: 20px;
+    }
+
+    /* 좌석 그리드 컨테이너 */
+    .grid-container {
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+
+    /* 스크롤바 스타일링 */
+    .grid-container::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .grid-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+    }
+
+    .grid-container::-webkit-scrollbar-thumb {
+      background: var(--primary-gradient);
+      border-radius: 4px;
+    }
+
+    .grid-container::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary-gradient);
     }
 
     @media (max-width: 1100px) {
@@ -206,18 +235,26 @@
       }
     }
 
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(5, 1fr);
+      }
+    }
+
     .seat {
       border: 1px solid var(--border-color);
       background: var(--glass-bg);
       backdrop-filter: blur(10px);
-      border-radius: 12px;
-      min-height: 58px;
-      padding: 8px;
+      border-radius: 8px;
+      min-height: 50px;
+      min-width: 60px;
+      padding: 6px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       transition: all 0.3s ease;
       cursor: pointer;
+      font-size: 11px;
     }
 
     .seat:hover {
@@ -230,13 +267,14 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 10px;
       color: var(--text-secondary);
     }
 
     .seat .name {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 500;
+      line-height: 1.2;
     }
 
     .seat.free {
@@ -342,6 +380,15 @@
   <script type="module">
     // ======= 1) Firebase 설정 =======
     // ⚠️ 아래 설정을 본인의 프로젝트로 바꾸세요 (Firebase 콘솔 > 프로젝트 설정 > SDK 설정 및 구성)
+    // ⚠️ Firestore 보안 규칙을 다음과 같이 설정하세요 (Firebase 콘솔 > Firestore Database > 규칙):
+    // rules_version = '2';
+    // service cloud.firestore {
+    //   match /databases/{database}/documents {
+    //     match /checkins/{document} {
+    //       allow read, write: if true;
+    //     }
+    //   }
+    // }
     const firebaseConfig = {
       apiKey: "AIzaSyBSfmmAYJAi3vXg3ZclB0PiBaNyV2lJ24s",
       authDomain: "self-check-3d44e.firebaseapp.com",
@@ -366,14 +413,44 @@
     }
     const fmtClassNo = (klass, num) => `${klass}반 ${num}번`;
 
+    // JSON 파일에서 명단 로드
+    async function loadRosterFromJSON() {
+      try {
+        const response = await fetch('name_list.json');
+        const jsonData = await response.json();
+        
+        const roster = {};
+        jsonData.forEach(student => {
+          const klass = student.반;
+          const number = student.번호;
+          const name = student.이름;
+          
+          if (klass >= 1 && klass <= 10 && number >= 1 && number <= 25) {
+            if (!roster[klass]) roster[klass] = {};
+            roster[klass][number] = name;
+          }
+        });
+        
+        return roster;
+      } catch (error) {
+        console.error('JSON 파일 로드 실패:', error);
+        console.log('CORS 문제일 수 있습니다. 웹 서버를 사용해주세요.');
+        
+        // CORS 문제 해결을 위한 안내
+        alert('JSON 파일을 로드할 수 없습니다.\n\n해결 방법:\n1. 웹 서버를 사용하세요 (예: Live Server)\n2. 또는 Python: python -m http.server 8000\n3. 또는 Node.js: npx serve .\n\n현재는 수동으로 이름을 입력해주세요.');
+        
+        return {};
+      }
+    }
+
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
-    import { getDatabase, ref, set, onValue, get, update, remove } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js';
+    import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    // 스키마
-    // /roster/{class}/{number}: name
-    // /checkins/{date}/{seat}: { class, number, name, ts }
+    const db = getFirestore(app);
+    // Firestore 스키마
+    // collection: 'checkins' -> document: '{date}_{seat}' -> { class: number, number: number, name: string, ts: number }
+    // 명단은 name_list.json 파일에서 로드
 
     // ===== 렌더 =====
     const header = document.createElement('header');
@@ -418,8 +495,8 @@
             <select id="number"></select>
           </div>
           <div style="flex:2 1 260px">
-            <label>이름 (선택)</label>
-            <input id="name" placeholder="명단에서 자동 매칭됨" />
+            <label>이름 (자동 매칭)</label>
+            <input id="name" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
           </div>
         </div>
         <div class="row" style="margin-top:12px">
@@ -433,15 +510,71 @@
       for(let i=1;i<=10;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}반`; klassSel.appendChild(opt); }
       for(let i=1;i<=25;i++){ const opt=document.createElement('option'); opt.value=String(i); opt.textContent=`${i}번`; numSel.appendChild(opt); }
 
-      // 명단 자동 매칭
-      onValue(ref(db, 'roster'), (snap)=>{
-        const roster = snap.val()||{};
+      // 명단 자동 매칭 (JSON 파일에서 로드)
+      let globalRoster = {};
+      loadRosterFromJSON().then(roster => {
+        globalRoster = roster;
+        
         const tryFill = () => {
-          const k = klassSel.value; const n = numSel.value; const nm = roster?.[k]?.[n];
-          if(nm) $('#name', card).value = nm;
+          const k = Number(klassSel.value);
+          const n = Number(numSel.value);
+          const nameInput = $('#name', card);
+          
+          // 사용자가 수동으로 입력한 경우를 확인
+          const isManualInput = nameInput.dataset.manual === 'true';
+          
+          if (k && n && globalRoster[k] && globalRoster[k][n]) {
+            // 명단에 있는 경우 자동으로 채우기 (수동 입력이 아닌 경우에만)
+            if (!isManualInput) {
+              nameInput.value = globalRoster[k][n];
+              nameInput.style.color = 'var(--text-primary)';
+              nameInput.placeholder = '명단에서 자동 매칭됨 (수정 가능)';
+              nameInput.title = '자동으로 불러온 이름입니다. 필요시 수정할 수 있습니다.';
+            } else {
+              nameInput.style.color = 'var(--text-primary)';
+              nameInput.placeholder = '수동으로 입력된 이름';
+              nameInput.title = '수동으로 입력된 이름입니다.';
+            }
+          } else if (k && n) {
+            // 반과 번호는 선택했지만 명단에 없는 경우
+            if (!isManualInput) {
+              nameInput.value = '';
+            }
+            nameInput.style.color = 'var(--text-secondary)';
+            nameInput.placeholder = '명단에 없는 번호입니다. 이름을 직접 입력하세요';
+            nameInput.title = '선택한 반과 번호가 명단에 없습니다. 이름을 직접 입력해주세요.';
+          } else {
+            // 반이나 번호가 선택되지 않은 경우
+            if (!isManualInput) {
+              nameInput.value = '';
+            }
+            nameInput.style.color = 'var(--text-secondary)';
+            nameInput.placeholder = '반과 번호를 선택하면 자동으로 불러옵니다';
+            nameInput.title = '반과 번호를 선택하면 명단에서 자동으로 이름을 불러옵니다.';
+          }
         }
+        
+        // 이름 입력 필드에 수동 입력 감지 이벤트 추가
+        const nameInput = $('#name', card);
+        nameInput.addEventListener('input', () => {
+          nameInput.dataset.manual = 'true';
+          nameInput.style.color = 'var(--text-primary)';
+          nameInput.placeholder = '수동으로 입력된 이름';
+          nameInput.title = '수동으로 입력된 이름입니다.';
+        });
+        
+        // 반이나 번호가 변경되면 수동 입력 플래그 리셋
+        const resetManualFlag = () => {
+          nameInput.dataset.manual = 'false';
+        };
+        klassSel.addEventListener('change', resetManualFlag);
+        numSel.addEventListener('change', resetManualFlag);
+        
+        // 이벤트 리스너 등록
         klassSel.addEventListener('change', tryFill);
         numSel.addEventListener('change', tryFill);
+        
+        // 초기 실행
         tryFill();
       });
 
@@ -452,11 +585,20 @@
         const klass = Number(klassSel.value), number = Number(numSel.value); const name = $('#name', card).value.trim(); const seat = seatId; const msg=$('#msg',card);
         if(!seat){ msg.textContent = '좌석 정보가 없습니다.'; msg.className='error'; return; }
         if(!klass || !number){ msg.textContent='반/번호를 선택하세요.'; msg.className='error'; return; }
-        const dateKey = todayKey();
-        const payload = { class: klass, number, name: name||null, ts: Date.now() };
-        await set(ref(db, `checkins/${dateKey}/${seat}`), payload);
-        msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
-        msg.className = 'success';
+        
+        try {
+          const dateKey = todayKey();
+          const docId = `${dateKey}_${seat}`;
+          const payload = { class: klass, number, name: name||null, ts: Date.now() };
+          
+          await setDoc(doc(db, 'checkins', docId), payload);
+          msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
+          msg.className = 'success';
+        } catch (error) {
+          console.error('출석 체크 실패:', error);
+          msg.textContent = `오류 발생: ${error.message}`;
+          msg.className = 'error';
+        }
       });
     }
 
@@ -476,14 +618,14 @@
           <div style="display:flex;gap:8px;align-items:center">
             <input id="dateInput" type="date" />
             <button class="ghost" id="reload">새로고침</button>
-            <input id="xlsx" type="file" accept=".xlsx" style="display:none" />
-            <button class="ghost" id="editRoster">명단 업로드(.xlsx)</button>
           </div>
         </div>
-        <div id="grid" class="grid"></div>
-        <div class="block-gap"></div>
-        <div id="grid2" class="grid"></div>
-        <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세를 볼 수 있습니다.</p>
+        <div class="grid-container">
+          <div id="grid" class="grid"></div>
+          <div class="block-gap"></div>
+          <div id="grid2" class="grid"></div>
+        </div>
+        <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세를 볼 수 있습니다. 좌석이 많을 때는 가로 스크롤을 사용하세요.</p>
       `;
       main.appendChild(container);
 
@@ -494,8 +636,20 @@
       function makeSeat(i){ const d=document.createElement('div'); d.className='seat free'; d.dataset.seat=String(i); d.innerHTML=`<div class="seatHeader"><span>#${i}</span><span class="muted">비어있음</span></div><div class="name muted">-</div>`; return d; }
 
       let roster = {};
-      onValue(ref(db,'roster'), snap=>{ roster = snap.val()||{}; });
-      onValue(ref(db, `checkins/${dateKey}`), snap=>{ draw(snap.val()||{}); });
+      loadRosterFromJSON().then(loadedRoster => {
+        roster = loadedRoster;
+      });
+      
+      onSnapshot(collection(db, 'checkins'), (snapshot) => {
+        const checkins = {};
+        snapshot.forEach((doc) => {
+          const [date, seat] = doc.id.split('_');
+          if (date === dateKey) {
+            checkins[seat] = doc.data();
+          }
+        });
+        draw(checkins);
+      });
 
       function draw(checkins){
         [...$$('.seat',grid), ...$$('.seat',grid2)].forEach(cell=>{
@@ -506,16 +660,30 @@
       }
 
       grid.addEventListener('click', seatClick); grid2.addEventListener('click', seatClick);
-      async function seatClick(e){ const cell=e.target.closest('.seat'); if(!cell) return; const seat=cell.dataset.seat; const snap=await get(ref(db, `checkins/${dateKey}/${seat}`)); if(!snap.exists()) return alert(`#${seat} 빈 좌석입니다.`); const v=snap.val(); const nm=v.name || roster?.[v.class]?.[v.number] || ''; const ok=confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); if(ok){ await remove(ref(db, `checkins/${dateKey}/${seat}`)); }
+      async function seatClick(e){ 
+        const cell=e.target.closest('.seat'); 
+        if(!cell) return; 
+        const seat=cell.dataset.seat; 
+        const docId = `${dateKey}_${seat}`;
+        
+        try {
+          const docSnap = await getDoc(doc(db, 'checkins', docId));
+          if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
+          
+          const v = docSnap.data(); 
+          const nm = v.name || roster?.[v.class]?.[v.number] || ''; 
+          const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
+          
+          if(ok){ 
+            await deleteDoc(doc(db, 'checkins', docId)); 
+          }
+        } catch (error) {
+          console.error('좌석 삭제 실패:', error);
+          alert('좌석 삭제 중 오류가 발생했습니다.');
+        }
       }
 
       $('#reload',container).addEventListener('click', ()=>{ const base=location.href.split('?')[0]; location.href=`${base}?mode=admin&date=${dateInput.value}`; });
-
-      // XLSX 업로드 → roster 업데이트
-      $('#editRoster',container).addEventListener('click', ()=> $('#xlsx',container).click());
-      $('#xlsx',container).addEventListener('change', async (ev)=>{
-        const file=ev.target.files[0]; if(!file) return; const data=await file.arrayBuffer(); const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{header:1}); if(!rows.length){ alert('빈 파일'); return; } if(String(rows[0][0]).includes('반')) rows.shift(); const updates={}; rows.forEach(([klass,num,name])=>{ const k=Number(klass), n=Number(num); if(k>=1&&k<=10&&n>=1&&n<=25&&name){ updates[`roster/${k}/${n}`]=String(name).trim(); }}); if(!Object.keys(updates).length){ alert('업데이트할 데이터가 없습니다'); return; } await update(ref(db), updates); alert('명단 업데이트 완료'); ev.target.value='';
-      });
     }
 
     // ===== 담임(출석/미참석 표) =====
@@ -535,9 +703,44 @@
       $('#load',container).addEventListener('click',()=>load());
       load();
 
-      let roster={}; onValue(ref(db,'roster'), snap=>{ roster = snap.val()||{}; });
+      let roster={}; 
+      loadRosterFromJSON().then(loadedRoster => {
+        roster = loadedRoster;
+      });
 
-      async function load(){ const k=Number(klassSel.value||1); const dateKey=$('#dateInput',container).value; const res=$('#result',container); res.innerHTML='<p class="muted">불러오는 중…</p>'; const snap=await get(ref(db, `checkins/${dateKey}`)); const bySeat=snap.val()||{}; const present=new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); const names=roster?.[k]||{}; let html=`<h3 style="margin:8px 0">${dateKey} · ${k}반 출결</h3>`; html+='<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>'; for(let n=1;n<=25;n++){ const nm=names?.[n]||''; const ok=present.has(n); html+=`<tr><td>${n}</td><td>${nm||'-'}</td><td style="color:${ok?'#16a34a':'#ef4444'}">${ok?'참석':'미참석'}</td></tr>`; } html+='</tbody></table>'; res.innerHTML=html; }
+      async function load(){ 
+        const k=Number(klassSel.value||1); 
+        const dateKey=$('#dateInput',container).value; 
+        const res=$('#result',container); 
+        res.innerHTML='<p class="muted">불러오는 중…</p>'; 
+        
+        try {
+          const snapshot = await getDocs(collection(db, 'checkins'));
+          const bySeat = {};
+          snapshot.forEach((doc) => {
+            const [date, seat] = doc.id.split('_');
+            if (date === dateKey) {
+              bySeat[seat] = doc.data();
+            }
+          });
+          
+          const present = new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); 
+          const names = roster?.[k]||{}; 
+          
+          let html=`<h3 style="margin:8px 0">${dateKey} · ${k}반 출결</h3>`; 
+          html+='<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>'; 
+          for(let n=1;n<=25;n++){ 
+            const nm=names?.[n]||''; 
+            const ok=present.has(n); 
+            html+=`<tr><td>${n}</td><td>${nm||'-'}</td><td style="color:${ok?'#16a34a':'#ef4444'}">${ok?'참석':'미참석'}</td></tr>`; 
+          } 
+          html+='</tbody></table>'; 
+          res.innerHTML=html; 
+        } catch (error) {
+          console.error('출석 데이터 로드 실패:', error);
+          res.innerHTML='<p class="error">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+        }
+      }
     }
   </script>
 </head>
