@@ -193,8 +193,8 @@
     .grid {
       display: grid;
       grid-template-columns: repeat(25, 1fr);
-      gap: 6px;
-      min-width: 1650px; /* 25개 좌석 × 60px + 24개 간격 × 6px */
+      gap: 8px;
+      min-width: 2200px; /* 25개 좌석 × 80px + 24개 간격 × 8px */
       padding-bottom: 8px;
     }
 
@@ -246,15 +246,15 @@
       background: var(--glass-bg);
       backdrop-filter: blur(10px);
       border-radius: 8px;
-      min-height: 50px;
-      min-width: 60px;
-      padding: 6px;
+      min-height: 70px;
+      min-width: 80px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       transition: all 0.3s ease;
       cursor: pointer;
-      font-size: 11px;
+      font-size: 13px;
     }
 
     .seat:hover {
@@ -266,15 +266,25 @@
     .seatHeader {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      font-size: 10px;
-      color: var(--text-secondary);
+      justify-content: center;
+      font-size: 12px;
+      color: var(--text-primary);
+      font-weight: 600;
+      margin-bottom: 4px;
     }
 
     .seat .name {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 500;
       line-height: 1.2;
+      text-align: center;
+    }
+
+    .seat .class-info {
+      font-size: 11px;
+      color: var(--text-secondary);
+      text-align: center;
+      margin-top: 2px;
     }
 
     .seat.free {
@@ -434,11 +444,6 @@
         return roster;
       } catch (error) {
         console.error('JSON 파일 로드 실패:', error);
-        console.log('CORS 문제일 수 있습니다. 웹 서버를 사용해주세요.');
-        
-        // CORS 문제 해결을 위한 안내
-        alert('JSON 파일을 로드할 수 없습니다.\n\n해결 방법:\n1. 웹 서버를 사용하세요 (예: Live Server)\n2. 또는 Python: python -m http.server 8000\n3. 또는 Node.js: npx serve .\n\n현재는 수동으로 이름을 입력해주세요.');
-        
         return {};
       }
     }
@@ -633,7 +638,17 @@
       const grid = $('#grid', container); const grid2 = $('#grid2', container);
       for(let i=1;i<=50;i++) grid.appendChild(makeSeat(i));
       for(let i=51;i<=100;i++) grid2.appendChild(makeSeat(i));
-      function makeSeat(i){ const d=document.createElement('div'); d.className='seat free'; d.dataset.seat=String(i); d.innerHTML=`<div class="seatHeader"><span>#${i}</span><span class="muted">비어있음</span></div><div class="name muted">-</div>`; return d; }
+      function makeSeat(i){ 
+        const d=document.createElement('div'); 
+        d.className='seat free'; 
+        d.dataset.seat=String(i); 
+        d.innerHTML=`
+          <div class="seatHeader">#${i}</div>
+          <div class="name muted">-</div>
+          <div class="class-info muted">-</div>
+        `; 
+        return d; 
+      }
 
       let roster = {};
       loadRosterFromJSON().then(loadedRoster => {
@@ -653,9 +668,37 @@
 
       function draw(checkins){
         [...$$('.seat',grid), ...$$('.seat',grid2)].forEach(cell=>{
-          const seat=cell.dataset.seat; const item=checkins[seat];
-          if(item){ const nm=item.name || roster?.[item.class]?.[item.number] || ''; cell.classList.remove('free'); cell.querySelector('.seatHeader span:last-child').textContent=fmtClassNo(item.class,item.number); cell.querySelector('.seatHeader span:last-child').classList.remove('muted'); cell.querySelector('.name').textContent=nm||'(이름없음)'; cell.querySelector('.name').classList.remove('muted'); }
-          else{ cell.classList.add('free'); cell.querySelector('.seatHeader span:last-child').textContent='비어있음'; cell.querySelector('.seatHeader span:last-child').classList.add('muted'); cell.querySelector('.name').textContent='-'; cell.querySelector('.name').classList.add('muted'); }
+          const seat=cell.dataset.seat; 
+          const item=checkins[seat];
+          
+          if(item){ 
+            const nm=item.name || roster?.[item.class]?.[item.number] || ''; 
+            cell.classList.remove('free'); 
+            
+            // 좌석 번호는 그대로 유지
+            cell.querySelector('.seatHeader').textContent=`#${seat}`;
+            
+            // 이름 표시
+            cell.querySelector('.name').textContent=nm||'(이름없음)'; 
+            cell.querySelector('.name').classList.remove('muted');
+            
+            // 반, 번호 정보 표시
+            cell.querySelector('.class-info').textContent=`${item.class}반 ${item.number}번`; 
+            cell.querySelector('.class-info').classList.remove('muted');
+          }
+          else{ 
+            cell.classList.add('free'); 
+            
+            // 좌석 번호는 그대로 유지
+            cell.querySelector('.seatHeader').textContent=`#${seat}`;
+            
+            // 비어있을 때는 이름과 반 정보를 숨김
+            cell.querySelector('.name').textContent=''; 
+            cell.querySelector('.name').classList.add('muted');
+            
+            cell.querySelector('.class-info').textContent=''; 
+            cell.querySelector('.class-info').classList.add('muted');
+          }
         });
       }
 
