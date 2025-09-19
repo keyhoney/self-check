@@ -401,18 +401,12 @@
         res.innerHTML='<p class="muted">불러오는 중…</p>'; 
         
         try {
-          const [year, month, day] = dateKey.split('-');
-          const snapshot = await getDocs(collection(db, 'checkins', year, month, day));
+          const snapshot = await getDocs(collection(db, 'checkins', dateKey, 'seats'));
           const bySeat = {};
-          
-          // 각 좌석의 student 문서에서 데이터 읽기
-          for (const seatDoc of snapshot.docs) {
-            const seat = seatDoc.id;
-            const studentDoc = await getDoc(doc(db, 'checkins', year, month, day, seat, 'student'));
-            if (studentDoc.exists()) {
-              bySeat[seat] = studentDoc.data();
-            }
-          }
+          snapshot.forEach((doc) => {
+            const seat = doc.id;
+            bySeat[seat] = doc.data();
+          });
           
           const present = new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); 
           const names = roster?.[k]||{}; 

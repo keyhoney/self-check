@@ -515,20 +515,14 @@
         roster = loadedRoster;
       });
       
-      // 계층 구조에서 데이터 읽기: checkins/년도/월/일/좌석번호/student
-      const [year, month, day] = dateKey.split('-');
-      onSnapshot(collection(db, 'checkins', year, month, day), (snapshot) => {
+      // 계층 구조에서 데이터 읽기: checkins/날짜/seats/좌석번호
+      onSnapshot(collection(db, 'checkins', dateKey, 'seats'), (snapshot) => {
         const checkins = {};
         snapshot.forEach((doc) => {
           const seat = doc.id;
-          // 각 좌석의 student 문서에서 데이터 읽기
-          getDoc(doc(db, 'checkins', year, month, day, seat, 'student')).then(studentDoc => {
-            if (studentDoc.exists()) {
-              checkins[seat] = studentDoc.data();
-              draw(checkins);
-            }
-          });
+          checkins[seat] = doc.data();
         });
+        draw(checkins);
       });
 
       function draw(checkins){
@@ -585,10 +579,9 @@
         const cell=e.target.closest('.seat'); 
         if(!cell) return; 
         const seat=cell.dataset.seat; 
-        const [year, month, day] = dateKey.split('-');
         
         try {
-          const docSnap = await getDoc(doc(db, 'checkins', year, month, day, String(seat), 'student'));
+          const docSnap = await getDoc(doc(db, 'checkins', dateKey, 'seats', String(seat)));
           if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
           const v = docSnap.data(); 
@@ -596,7 +589,7 @@
           const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
           
           if(ok){ 
-            await deleteDoc(doc(db, 'checkins', year, month, day, String(seat), 'student')); 
+            await deleteDoc(doc(db, 'checkins', dateKey, 'seats', String(seat))); 
           }
         } catch (error) {
           console.error('좌석 삭제 실패:', error);
