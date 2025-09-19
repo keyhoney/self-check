@@ -1,10 +1,10 @@
 // 관리자 페이지 전용 JavaScript
 
 import { $, $$, todayKey, fmtClassNo, loadRosterFromJSON, firebaseConfig } from './common.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const params = new URLSearchParams(location.search);
@@ -62,11 +62,11 @@ async function renderAdmin() {
     return d;
   }
 
-  // 1-25번 좌석을 첫 번째 그리드에, 26-50번 좌석을 두 번째 그리드에 배치
-  for (let i = 1; i <= 25; i++) {
+  // 1-50번 좌석을 첫 번째 그리드에, 51-100번 좌석을 두 번째 그리드에 배치
+  for (let i = 1; i <= 50; i++) {
     grid.appendChild(makeSeat(i));
   }
-  for (let i = 26; i <= 50; i++) {
+  for (let i = 51; i <= 100; i++) {
     grid2.appendChild(makeSeat(i));
   }
 
@@ -76,14 +76,20 @@ async function renderAdmin() {
   });
   
   // 계층 구조에서 데이터 읽기: checkins/날짜/seats/좌석번호
-  onSnapshot(collection(db, 'checkins', dateKey, 'seats'), (snapshot) => {
-    const checkins = {};
-    snapshot.forEach((doc) => {
-      const seat = doc.id;
-      checkins[seat] = doc.data();
-    });
-    draw(checkins);
-  });
+  onSnapshot(
+    collection(db, 'checkins', dateKey, 'seats'),
+    (snapshot) => {
+      const checkins = {};
+      snapshot.forEach((doc) => {
+        const seat = doc.id;
+        checkins[seat] = doc.data();
+      });
+      draw(checkins);
+    },
+    (error) => {
+      console.error('onSnapshot error:', error);   // permission-denied 등 확인
+    }
+  );
 
   function draw(checkins) {
     let attendanceCount = 0; // 출석한 학생 수 카운터

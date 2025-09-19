@@ -1,10 +1,10 @@
 // 담임 페이지 전용 JavaScript
 
 import { $, $$, todayKey, fmtClassNo, loadRosterFromJSON, firebaseConfig } from './common.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
+import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js';
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const params = new URLSearchParams(location.search);
@@ -76,7 +76,7 @@ async function renderTeacher() {
       res.innerHTML = html;
     } catch (error) {
       console.error('출석 데이터 로드 실패:', error);
-      res.innerHTML = '<p class="error">데이터를 불러오는 중 오류가 발생했습니다.</p>';
+      res.innerHTML = '<p class="error">불러오기 실패 (권한/규칙 또는 네트워크 확인)</p>';
     }
   }
 }

@@ -54,3 +54,5 @@ export const firebaseConfig = {
   messagingSenderId: "1013380899103",
   appId: "1:1013380899103:web:3f3125f116446835c3d02a"
 };
+
+// Firebase 앱 초기화 (중복 방지) - 각 파일에서 직접 import해서 사용
