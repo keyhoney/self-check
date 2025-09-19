@@ -481,10 +481,6 @@
       card.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div>${seatInfo}</div>
-          <div style="display:flex;gap:8px">
-            <button class="ghost" id="toAdmin">관리자</button>
-            <button class="ghost" id="toTeacher">담임조회</button>
-          </div>
         </div>
         <div class="row">
           <div style="flex:1 1 180px">
@@ -605,8 +601,6 @@
         tryFill();
       });
 
-      $('#toAdmin',card).addEventListener('click',()=>{ location.href='admin.html'; });
-      $('#toTeacher',card).addEventListener('click',()=>{ location.href='homeroom.html'; });
 
       $('#submitBtn',card).addEventListener('click', async ()=>{
         const klass = Number(klassSel.value), number = Number(numSel.value); const name = $('#name', card).value.trim(); const seat = seatId; const msg=$('#msg',card);
@@ -615,10 +609,11 @@
         
         try {
           const dateKey = todayKey();
-          const docId = `${dateKey}_${seat}`;
+          const [year, month, day] = dateKey.split('-');
           const payload = { class: klass, number, name: name||null, ts: Date.now() };
           
-          await setDoc(doc(db, 'checkins', docId), payload);
+          // 새로운 계층 구조: checkins/년도/월/일/좌석번호
+          await setDoc(doc(db, 'checkins', year, month, day, String(seat)), payload);
           msg.textContent = `체크 완료! (${fmtClassNo(klass,number)} ${name||''})`;
           msg.className = 'success';
         } catch (error) {

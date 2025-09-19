@@ -370,11 +370,9 @@
           <div style="flex:1 1 240px"><label>날짜</label><input id="dateInput" type="date" /></div>
           <div style="flex:0 0 auto"><button class="ghost" id="load">불러오기</button></div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:12px">
-          <button class="ghost" id="toStudent">학생용</button>
-          <button class="ghost" id="toAdmin">관리자</button>
-        </div>
-        <div id="result" style="margin-top:14px"></div>`;
+        <div id="result" style="margin-top:14px">
+          <p class="muted">반을 선택하고 '불러오기' 버튼을 클릭하여 출석 현황을 확인하세요.</p>
+        </div>`;
       document.querySelector('main').appendChild(container);
 
       const klassSel=$('#klass',container); 
@@ -386,7 +384,6 @@
       }
       $('#dateInput',container).value=dateKey;
       $('#load',container).addEventListener('click',()=>load());
-      load();
 
       let roster = {}; 
       let maxNumbers = {};
@@ -394,7 +391,7 @@
       loadRosterFromJSON().then(data => {
         roster = data.roster;
         maxNumbers = data.maxNumbers;
-        load(); // 명단 로드 후 초기 데이터 표시
+        // 명단 로드 완료 - 사용자가 불러오기 버튼을 눌러야 데이터 표시
       });
 
       async function load(){ 
@@ -404,13 +401,12 @@
         res.innerHTML='<p class="muted">불러오는 중…</p>'; 
         
         try {
-          const snapshot = await getDocs(collection(db, 'checkins'));
+          const [year, month, day] = dateKey.split('-');
+          const snapshot = await getDocs(collection(db, 'checkins', year, month, day));
           const bySeat = {};
           snapshot.forEach((doc) => {
-            const [date, seat] = doc.id.split('_');
-            if (date === dateKey) {
-              bySeat[seat] = doc.data();
-            }
+            const seat = doc.id;
+            bySeat[seat] = doc.data();
           });
           
           const present = new Set(Object.values(bySeat).filter(v=>v.class===k).map(v=>Number(v.number))); 
@@ -434,8 +430,6 @@
         }
       }
 
-      $('#toStudent',container).addEventListener('click', ()=>{ location.href='index.html'; });
-      $('#toAdmin',container).addEventListener('click', ()=>{ location.href='admin.html'; });
     }
   </script>
 </head>

@@ -291,6 +291,16 @@
       opacity: 0.6;
     }
 
+    .seat.occupied {
+      background: rgba(34, 197, 94, 0.15); /* 옅은 투명 초록색 배경 */
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .seat.occupied:hover {
+      background: rgba(34, 197, 94, 0.25);
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
     .legend {
       display: flex;
       gap: 12px;
@@ -455,17 +465,20 @@
       container.innerHTML = `
         <div style="display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div>
-            <strong>${dateKey}</strong> 좌석 현황
-            <div class="legend" style="margin-top:6px">
-              <span class="pill"><span style="width:10px;height:10px;border-radius:50%;background:var(--good);display:inline-block"></span> 체크됨</span>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+              <strong>${dateKey}</strong> 좌석 현황
+              <div id="attendanceCounter" class="pill" style="background:rgba(34, 197, 94, 0.2);border-color:rgba(34, 197, 94, 0.4);color:var(--good);font-weight:600">
+                출석: <span id="attendanceCount">0</span>명
+              </div>
+            </div>
+            <div class="legend">
+              <span class="pill"><span style="width:10px;height:10px;border-radius:50%;background:rgba(34, 197, 94, 0.8);display:inline-block"></span> 체크됨</span>
               <span class="pill"><span style="width:10px;height:10px;border-radius:50%;background:var(--line);display:inline-block"></span> 비어있음</span>
             </div>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <input id="dateInput" type="date" />
             <button class="ghost" id="reload">새로고침</button>
-            <button class="ghost" id="toStudent">학생용</button>
-            <button class="ghost" id="toTeacher">담임조회</button>
           </div>
         </div>
         <div class="grid-container">
@@ -473,7 +486,7 @@
           <div class="block-gap"></div>
           <div id="grid2" class="grid"></div>
         </div>
-        <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세를 볼 수 있습니다. 좌석이 많을 때는 가로 스크롤을 사용하세요.</p>
+        <p class="muted" style="margin-top:10px">좌석을 클릭하면 비우거나(삭제) 상세 정보를 볼 수 있습니다. 가로 스크롤을 사용하세요.</p>
       `;
       main.appendChild(container);
 
@@ -502,25 +515,29 @@
         roster = loadedRoster;
       });
       
-      onSnapshot(collection(db, 'checkins'), (snapshot) => {
+      // 새로운 계층 구조에서 데이터 읽기
+      const [year, month, day] = dateKey.split('-');
+      onSnapshot(collection(db, 'checkins', year, month, day), (snapshot) => {
         const checkins = {};
         snapshot.forEach((doc) => {
-          const [date, seat] = doc.id.split('_');
-          if (date === dateKey) {
-            checkins[seat] = doc.data();
-          }
+          const seat = doc.id;
+          checkins[seat] = doc.data();
         });
         draw(checkins);
       });
 
       function draw(checkins){
+        let attendanceCount = 0; // 출석한 학생 수 카운터
+        
         [...$$('.seat',grid), ...$$('.seat',grid2)].forEach(cell=>{
           const seat=cell.dataset.seat; 
           const item=checkins[seat];
           
           if(item){ 
+            attendanceCount++; // 출석한 학생 수 증가
             const nm=item.name || roster?.[item.class]?.[item.number] || ''; 
             cell.classList.remove('free'); 
+            cell.classList.add('occupied'); // 학생이 있는 자리 표시
             
             // 좌석 번호는 그대로 유지
             cell.querySelector('.seatHeader').textContent=`#${seat}`;
@@ -535,6 +552,7 @@
           }
           else{ 
             cell.classList.add('free'); 
+            cell.classList.remove('occupied'); // 비어있는 자리 표시
             
             // 좌석 번호는 그대로 유지
             cell.querySelector('.seatHeader').textContent=`#${seat}`;
@@ -547,6 +565,12 @@
             cell.querySelector('.class-info').classList.add('muted');
           }
         });
+        
+        // 출석 카운터 업데이트
+        const counterElement = $('#attendanceCount', container);
+        if (counterElement) {
+          counterElement.textContent = attendanceCount;
+        }
       }
 
       grid.addEventListener('click', seatClick); 
@@ -556,10 +580,10 @@
         const cell=e.target.closest('.seat'); 
         if(!cell) return; 
         const seat=cell.dataset.seat; 
-        const docId = `${dateKey}_${seat}`;
+        const [year, month, day] = dateKey.split('-');
         
         try {
-          const docSnap = await getDoc(doc(db, 'checkins', docId));
+          const docSnap = await getDoc(doc(db, 'checkins', year, month, day, String(seat)));
           if(!docSnap.exists()) return alert(`#${seat} 빈 좌석입니다.`); 
           
           const v = docSnap.data(); 
@@ -567,7 +591,7 @@
           const ok = confirm(`#${seat} ${fmtClassNo(v.class,v.number)} ${nm}\n이 좌석을 비우시겠습니까?`); 
           
           if(ok){ 
-            await deleteDoc(doc(db, 'checkins', docId)); 
+            await deleteDoc(doc(db, 'checkins', year, month, day, String(seat))); 
           }
         } catch (error) {
           console.error('좌석 삭제 실패:', error);
@@ -580,8 +604,6 @@
         location.href=`${base}?date=${dateInput.value}`; 
       });
       
-      $('#toStudent',container).addEventListener('click', ()=>{ location.href='index.html'; });
-      $('#toTeacher',container).addEventListener('click', ()=>{ location.href='homeroom.html'; });
     }
   </script>
 </head>
