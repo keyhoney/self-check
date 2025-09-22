@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(main);
 
   // 비밀번호 확인
-  const pass = prompt('담임 비밀번호를 입력하세요');
+  const pass = prompt('비밀번호를 입력하세요');
   if (pass !== 'honey') {
     const c = document.createElement('div');
     c.className = 'card';
@@ -128,3 +128,4 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTeacher();
   }
 });
+
