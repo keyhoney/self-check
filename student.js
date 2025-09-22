@@ -35,7 +35,7 @@ async function renderStudent() {
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:0 0 250px">
+      <div style="flex:0 0 300px">
         <label>이름</label>
         <input id="name" type="text" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
       </div>
@@ -216,5 +216,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
 
