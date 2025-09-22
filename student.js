@@ -27,17 +27,17 @@ async function renderStudent() {
       ${seatInfo}
     </div>
     <div class="row">
-      <div style="flex:0 0 180px">
+      <div style="flex:0 0 90px">
         <label>반 (1~10)</label>
         <select id="klass"></select>
       </div>
-      <div style="flex:0 0 180px">
+      <div style="flex:0 0 90px">
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:0 0 350px">
+      <div style="flex:0 0 120px">
         <label>이름</label>
-        <input id="name" type="text" placeholder="반과 번호를 선택하세요" />
+        <input id="name" type="text" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
       </div>
       <div style="flex:0 0 auto;display:flex;align-items:end">
         <button class="primary" id="submitBtn">출석 체크</button>
@@ -127,7 +127,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '명단에 없습니다. 직접 입력하세요';
+        nameInput.placeholder = '명단에 없는 번호입니다. 이름을 직접 입력하세요';
         nameInput.title = '선택한 반과 번호가 명단에 없습니다. 이름을 직접 입력해주세요.';
       } else {
         // 반이나 번호가 선택되지 않은 경우
@@ -135,7 +135,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '반과 번호를 선택하세요';
+        nameInput.placeholder = '반과 번호를 선택하면 자동으로 불러옵니다';
         nameInput.title = '반과 번호를 선택하면 명단에서 자동으로 이름을 불러옵니다.';
       }
     };
@@ -203,6 +203,47 @@ async function renderStudent() {
       msg.className = 'error';
     }
   });
+
+  // 좌석 이동 요청 버튼 표시 함수
+  function showSeatMoveButton() {
+    // 이미 버튼이 있다면 제거
+    const existingButton = document.querySelector('#seatMoveButton');
+    if (existingButton) {
+      existingButton.remove();
+    }
+
+    // 좌석 이동 요청 버튼 생성
+    const moveButton = document.createElement('div');
+    moveButton.id = 'seatMoveButton';
+    moveButton.style.cssText = `
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 8px;
+      text-align: center;
+    `;
+    
+    moveButton.innerHTML = `
+      <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 14px;">
+        좌석을 변경하고 싶으신가요?
+      </p>
+      <button 
+        class="ghost" 
+        style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;"
+        onclick="window.open('seat-move.html', '_blank')"
+      >
+        🔄 좌석 이동 요청
+      </button>
+    `;
+    
+    // 메시지 아래에 버튼 추가
+    const msg = $('#msg', card);
+    msg.parentNode.insertBefore(moveButton, msg.nextSibling);
+  }
+
+  // 페이지 로드 시 좌석 이동 버튼 표시
+  showSeatMoveButton();
 }
 
 // 페이지 로드 시 실행
@@ -216,8 +257,3 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
-
-
-
-
-
