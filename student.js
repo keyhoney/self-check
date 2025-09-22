@@ -35,7 +35,7 @@ async function renderStudent() {
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:0 0 250px">
+      <div style="flex:0 0 350px">
         <label>이름</label>
         <input id="name" type="text" placeholder="반과 번호를 선택하세요" />
       </div>
@@ -127,7 +127,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '명단에 없는 번호입니다. 이름을 직접 입력하세요';
+        nameInput.placeholder = '명단에 없습니다. 직접 입력하세요';
         nameInput.title = '선택한 반과 번호가 명단에 없습니다. 이름을 직접 입력해주세요.';
       } else {
         // 반이나 번호가 선택되지 않은 경우
@@ -135,7 +135,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '반과 번호를 선택하면 자동으로 불러옵니다';
+        nameInput.placeholder = '반과 번호를 선택하세요';
         nameInput.title = '반과 번호를 선택하면 명단에서 자동으로 이름을 불러옵니다.';
       }
     };
@@ -216,6 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
 
 
