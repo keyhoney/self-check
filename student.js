@@ -15,21 +15,27 @@ const seatId = params.get('seat');
 async function renderStudent() {
   const card = document.createElement('div');
   card.className = 'card';
-  const seatInfo = seatId ? `<strong>${seatId}번 좌석</strong>` : '<strong class="error">좌석 정보가 없습니다 (QR 링크에 ?seat=숫자 필요)</strong>';
+  const seatInfo = seatId ? `
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:8px 16px;border-radius:20px;color:white;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102, 126, 234, 0.3)">
+        🪑 ${seatId}번 좌석
+      </div>
+    </div>
+  ` : '<strong class="error">좌석 정보가 없습니다 (QR 링크에 ?seat=숫자 필요)</strong>';
   card.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div>${seatInfo}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      ${seatInfo}
     </div>
     <div class="row">
-      <div style="flex:1 1 180px">
+      <div style="flex:0 0 90px">
         <label>반 (1~10)</label>
         <select id="klass"></select>
       </div>
-      <div style="flex:1 1 180px">
+      <div style="flex:0 0 90px">
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:1 1 200px">
+      <div style="flex:0 0 120px">
         <label>이름</label>
         <input id="name" type="text" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
       </div>
@@ -44,6 +50,14 @@ async function renderStudent() {
   const klassSel = $('#klass', card);
   const numSel = $('#number', card);
 
+  // 플레이스홀더 옵션 추가
+  const placeholderOpt = document.createElement('option');
+  placeholderOpt.value = '';
+  placeholderOpt.textContent = '반을 선택하세요';
+  placeholderOpt.disabled = true;
+  placeholderOpt.selected = true;
+  klassSel.appendChild(placeholderOpt);
+  
   for (let i = 1; i <= 10; i++) {
     const opt = document.createElement('option');
     opt.value = String(i);
@@ -60,6 +74,17 @@ async function renderStudent() {
     // 기존 번호 옵션 제거
     numSel.innerHTML = '';
     
+    // 플레이스홀더 옵션 추가
+    const placeholderOpt = document.createElement('option');
+    placeholderOpt.value = '';
+    placeholderOpt.textContent = '번호를 선택하세요';
+    placeholderOpt.disabled = true;
+    placeholderOpt.selected = true;
+    numSel.appendChild(placeholderOpt);
+    
+    // 반이 선택되지 않은 경우 번호 옵션을 추가하지 않음
+    if (!selectedClass) return;
+    
     const maxNum = globalMaxNumbers[selectedClass] || 25;
     for (let i = 1; i <= maxNum; i++) {
       const opt = document.createElement('option');
@@ -73,8 +98,8 @@ async function renderStudent() {
     globalRoster = data.roster;
     globalMaxNumbers = data.maxNumbers;
     
-    // 초기 번호 옵션 설정 (1반 기준)
-    updateNumberOptions(1);
+    // 초기 번호 옵션 설정 (플레이스홀더만 표시)
+    updateNumberOptions(null);
     
     const tryFill = () => {
       const k = Number(klassSel.value);
@@ -131,7 +156,7 @@ async function renderStudent() {
     
     // 반 선택 변경 시 번호 옵션 업데이트
     klassSel.addEventListener('change', (e) => {
-      const selectedClass = Number(e.target.value);
+      const selectedClass = e.target.value ? Number(e.target.value) : null;
       updateNumberOptions(selectedClass);
       resetManualFlag();
       tryFill();

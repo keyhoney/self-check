@@ -153,3 +153,10 @@
   font-size: 14px;
   color: var(--text-secondary);
 }
+
+/* 새로고침 버튼 스타일 */
+#reload {
+  white-space: nowrap;
+  min-width: 80px;
+  padding: 8px 12px;
+}

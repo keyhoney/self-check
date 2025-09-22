@@ -63,15 +63,42 @@ async function renderTeacher() {
       const names = roster?.[k] || {};
       const maxNum = maxNumbers?.[k] || 0; // 해당 반의 최대 번호
       
-      let html = `<h3 style="margin:8px 0">${dateKey} · ${k}반 출결 (총 ${maxNum}명)</h3>`;
-      html += '<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>';
+      // 참석자와 미참석자를 번호 순으로 분리
+      const presentList = [];
+      const absentList = [];
       
-      // 해당 반의 최대 번호까지만 반복
       for (let n = 1; n <= maxNum; n++) {
         const nm = names?.[n] || '';
         const ok = present.has(n);
-        html += `<tr><td>${n}</td><td>${nm || '-'}</td><td style="color:${ok ? '#16a34a' : '#ef4444'}">${ok ? '참석' : '미참석'}</td></tr>`;
+        const studentInfo = { number: n, name: nm, present: ok };
+        
+        if (ok) {
+          presentList.push(studentInfo);
+        } else {
+          absentList.push(studentInfo);
+        }
       }
+      
+      // 번호 순으로 정렬
+      presentList.sort((a, b) => a.number - b.number);
+      absentList.sort((a, b) => a.number - b.number);
+      
+      let html = `<h3 style="margin:8px 0">${dateKey} · ${k}반 출결 (총 ${maxNum}명, 참석 ${presentList.length}명, 미참석 ${absentList.length}명)</h3>`;
+      
+      // 참석자 섹션
+      html += `<h4 style="margin:12px 0 8px 0;color:#16a34a">✅ 참석자 (${presentList.length}명)</h4>`;
+      html += '<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>';
+      presentList.forEach(student => {
+        html += `<tr><td>${student.number}</td><td>${student.name || '-'}</td><td style="color:#16a34a">참석</td></tr>`;
+      });
+      html += '</tbody></table>';
+      
+      // 미참석자 섹션
+      html += `<h4 style="margin:16px 0 8px 0;color:#ef4444">❌ 미참석자 (${absentList.length}명)</h4>`;
+      html += '<table><thead><tr><th>번호</th><th>이름</th><th>참석 여부</th></tr></thead><tbody>';
+      absentList.forEach(student => {
+        html += `<tr><td>${student.number}</td><td>${student.name || '-'}</td><td style="color:#ef4444">미참석</td></tr>`;
+      });
       html += '</tbody></table>';
       res.innerHTML = html;
     } catch (error) {
