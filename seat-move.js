@@ -49,7 +49,7 @@ async function renderSeatMove() {
     
     <div id="moveSection" style="display:none">
       <div class="row" style="margin-bottom:16px">
-        <div style="flex:0 0 120px">
+        <div style="flex:0 0 350px">
           <label>이동할 좌석</label>
           <select id="newSeat">
             <option value="">좌석을 선택하세요</option>
@@ -285,3 +285,4 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderSeatMove();
 });
+
