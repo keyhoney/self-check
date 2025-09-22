@@ -27,17 +27,17 @@ async function renderStudent() {
       ${seatInfo}
     </div>
     <div class="row">
-      <div style="flex:0 0 90px">
+      <div style="flex:0 0 180px">
         <label>반 (1~10)</label>
         <select id="klass"></select>
       </div>
-      <div style="flex:0 0 90px">
+      <div style="flex:0 0 180px">
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:0 0 120px">
+      <div style="flex:0 0 220px">
         <label>이름</label>
-        <input id="name" type="text" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
+        <input id="name" type="text" placeholder="반과 번호를 선택하세요요" />
       </div>
       <div style="flex:0 0 auto;display:flex;align-items:end">
         <button class="primary" id="submitBtn">출석 체크</button>
@@ -127,7 +127,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '명단에 없는 번호입니다. 이름을 직접 입력하세요';
+        nameInput.placeholder = '명단에 없습니다. 직접 입력하세요';
         nameInput.title = '선택한 반과 번호가 명단에 없습니다. 이름을 직접 입력해주세요.';
       } else {
         // 반이나 번호가 선택되지 않은 경우
@@ -135,7 +135,7 @@ async function renderStudent() {
           nameInput.value = '';
         }
         nameInput.style.color = 'var(--text-secondary)';
-        nameInput.placeholder = '반과 번호를 선택하면 자동으로 불러옵니다';
+        nameInput.placeholder = '반과 번호를 선택하세요';
         nameInput.title = '반과 번호를 선택하면 명단에서 자동으로 이름을 불러옵니다.';
       }
     };
@@ -257,3 +257,4 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
