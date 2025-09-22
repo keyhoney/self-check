@@ -219,8 +219,7 @@ async function renderStudent() {
       const seatDoc = await getDoc(doc(db, 'checkins', dateKey, 'seats', String(seat)));
       if (seatDoc.exists()) {
         const existingData = seatDoc.data();
-        const existingName = existingData.name || globalRoster?.[existingData.class]?.[existingData.number] || '';
-        msg.textContent = `${seat}번 좌석은 이미 ${fmtClassNo(existingData.class, existingData.number)} ${existingName} 학생이 사용 중입니다.`;
+        msg.textContent = `${seat}번 좌석은 이미 사용 중입니다.`;
         msg.className = 'error';
         return;
       }
@@ -251,5 +250,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
 
