@@ -191,6 +191,17 @@ async function renderStudent() {
     
     try {
       const dateKey = todayKey();
+      
+      // 해당 좌석이 이미 사용 중인지 확인
+      const seatDoc = await getDoc(doc(db, 'checkins', dateKey, 'seats', String(seat)));
+      if (seatDoc.exists()) {
+        const existingData = seatDoc.data();
+        const existingName = existingData.name || globalRoster?.[existingData.class]?.[existingData.number] || '';
+        msg.textContent = `${seat}번 좌석은 이미 ${fmtClassNo(existingData.class, existingData.number)} ${existingName} 학생이 사용 중입니다.`;
+        msg.className = 'error';
+        return;
+      }
+      
       const payload = { class: klass, number, name: name || null, ts: Date.now() };
       
       // 계층 구조: checkins/날짜/seats/좌석번호
@@ -257,4 +268,5 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
