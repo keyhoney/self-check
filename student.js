@@ -54,7 +54,7 @@ async function renderStudent() {
   moveCard.innerHTML = `
 
     <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 14px;">
-      QR Code로 셀프 체크한 뒤 좌석을 이동하셨나요?
+      QR Code로 셀프 체크한 뒤 좌석을 이동하셨나요?   
         <button 
       class="ghost" 
       style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;"
@@ -246,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
 
 
