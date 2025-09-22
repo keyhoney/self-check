@@ -27,15 +27,15 @@ async function renderStudent() {
       ${seatInfo}
     </div>
     <div class="row">
-      <div style="flex:0 0 90px">
+      <div style="flex:0 0 180px">
         <label>반 (1~10)</label>
         <select id="klass"></select>
       </div>
-      <div style="flex:0 0 90px">
+      <div style="flex:0 0 180px">
         <label>번호</label>
         <select id="number"></select>
       </div>
-      <div style="flex:0 0 120px">
+      <div style="flex:0 0 200px">
         <label>이름</label>
         <input id="name" type="text" placeholder="반과 번호를 선택하면 자동으로 불러옵니다" />
       </div>
@@ -216,3 +216,4 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
