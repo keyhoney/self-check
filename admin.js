@@ -193,4 +193,16 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.appendChild(main);
   
   renderAdmin();
+
+  // 비밀번호 확인
+  const pass = prompt('비밀번호를 입력하세요');
+  if (pass !== 'honey') {
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.innerHTML = '<p class="error">비밀번호가 올바르지 않습니다.</p>';
+    main.appendChild(c);
+  } else {
+    renderTeacher();
+  }
 });
+
