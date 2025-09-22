@@ -13,16 +13,17 @@ const seatId = params.get('seat');
 
 // ===== 학생용 =====
 async function renderStudent() {
-  const card = document.createElement('div');
-  card.className = 'card';
+  // 출석 체크 카드
+  const attendanceCard = document.createElement('div');
+  attendanceCard.className = 'card';
   const seatInfo = seatId ? `
     <div style="display:flex;align-items:center;gap:12px">
       <div style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%);padding:8px 16px;border-radius:20px;color:white;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(102, 126, 234, 0.3)">
         🪑 ${seatId}번 좌석
       </div>
     </div>
-  ` : '<strong class="error">좌석 정보가 없습니다 (QR 링크에 ?seat=숫자 필요)</strong>';
-  card.innerHTML = `
+  ` : '<strong class="error">좌석 정보가 없습니다</strong>';
+  attendanceCard.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
       ${seatInfo}
     </div>
@@ -45,10 +46,32 @@ async function renderStudent() {
     </div>
     <p id="msg" class="muted" style="margin-top:10px"></p>
   `;
-  document.querySelector('main').appendChild(card);
+  document.querySelector('main').appendChild(attendanceCard);
 
-  const klassSel = $('#klass', card);
-  const numSel = $('#number', card);
+  // 좌석 이동 카드
+  const moveCard = document.createElement('div');
+  moveCard.className = 'card';
+  moveCard.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%);padding:8px 16px;border-radius:20px;color:white;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(245, 158, 11, 0.3)">
+        🔄 좌석 이동 요청
+      </div>
+    </div>
+    <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 14px;">
+      QR Code로 셀프 체크한 뒤 좌석을 이동하셨나요?
+    </p>
+    <button 
+      class="ghost" 
+      style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;"
+      onclick="window.open('seat-move.html', '_blank')"
+    >
+      🔄 좌석 이동 요청
+    </button>
+  `;
+  document.querySelector('main').appendChild(moveCard);
+
+  const klassSel = $('#klass', attendanceCard);
+  const numSel = $('#number', attendanceCard);
 
   // 플레이스홀더 옵션 추가
   const placeholderOpt = document.createElement('option');
@@ -104,7 +127,7 @@ async function renderStudent() {
     const tryFill = () => {
       const k = Number(klassSel.value);
       const n = Number(numSel.value);
-      const nameInput = $('#name', card);
+      const nameInput = $('#name', attendanceCard);
       
       // 사용자가 수동으로 입력한 경우를 확인
       const isManualInput = nameInput.dataset.manual === 'true';
@@ -141,7 +164,7 @@ async function renderStudent() {
     };
 
     // 이름 입력 필드에 수동 입력 감지 이벤트 추가
-    const nameInput = $('#name', card);
+    const nameInput = $('#name', attendanceCard);
     nameInput.addEventListener('input', () => {
       nameInput.dataset.manual = 'true';
       nameInput.style.color = 'var(--text-primary)';
@@ -171,12 +194,12 @@ async function renderStudent() {
     tryFill();
   });
 
-  $('#submitBtn', card).addEventListener('click', async () => {
+  $('#submitBtn', attendanceCard).addEventListener('click', async () => {
     const klass = Number(klassSel.value);
     const number = Number(numSel.value);
-    const name = $('#name', card).value.trim();
+    const name = $('#name', attendanceCard).value.trim();
     const seat = seatId;
-    const msg = $('#msg', card);
+    const msg = $('#msg', attendanceCard);
     
     if (!seat) {
       msg.textContent = '좌석 정보가 없습니다.';
@@ -215,46 +238,6 @@ async function renderStudent() {
     }
   });
 
-  // 좌석 이동 요청 버튼 표시 함수
-  function showSeatMoveButton() {
-    // 이미 버튼이 있다면 제거
-    const existingButton = document.querySelector('#seatMoveButton');
-    if (existingButton) {
-      existingButton.remove();
-    }
-
-    // 좌석 이동 요청 버튼 생성
-    const moveButton = document.createElement('div');
-    moveButton.id = 'seatMoveButton';
-    moveButton.style.cssText = `
-      margin-top: 16px;
-      padding: 12px;
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-      border-radius: 8px;
-      text-align: center;
-    `;
-    
-    moveButton.innerHTML = `
-      <p style="margin: 0 0 8px 0; color: var(--text-secondary); font-size: 14px;">
-        좌석을 변경하고 싶으신가요?
-      </p>
-      <button 
-        class="ghost" 
-        style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;"
-        onclick="window.open('seat-move.html', '_blank')"
-      >
-        🔄 좌석 이동 요청
-      </button>
-    `;
-    
-    // 메시지 아래에 버튼 추가
-    const msg = $('#msg', card);
-    msg.parentNode.insertBefore(moveButton, msg.nextSibling);
-  }
-
-  // 페이지 로드 시 좌석 이동 버튼 표시
-  showSeatMoveButton();
 }
 
 // 페이지 로드 시 실행
