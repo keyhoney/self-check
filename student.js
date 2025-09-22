@@ -52,21 +52,17 @@ async function renderStudent() {
   const moveCard = document.createElement('div');
   moveCard.className = 'card';
   moveCard.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
-      <div style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%);padding:8px 16px;border-radius:20px;color:white;font-weight:600;font-size:16px;box-shadow:0 4px 15px rgba(245, 158, 11, 0.3)">
-        🔄 좌석 이동 요청
-      </div>
-    </div>
+
     <p style="margin: 0 0 12px 0; color: var(--text-secondary); font-size: 14px;">
       QR Code로 셀프 체크한 뒤 좌석을 이동하셨나요?
-    </p>
-    <button 
+        <button 
       class="ghost" 
       style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px;"
       onclick="window.open('seat-move.html', '_blank')"
     >
       🔄 좌석 이동 요청
     </button>
+    </p>
   `;
   document.querySelector('main').appendChild(moveCard);
 
@@ -250,6 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   renderStudent();
 });
+
 
 
 
